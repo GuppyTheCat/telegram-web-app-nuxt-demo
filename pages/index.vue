@@ -19,4 +19,17 @@ const handleLogEvent = (eventName: string, e: PointerEvent) => {
   }
   console.log(log)
 }
-</script> 
+</script>
+
+<style scoped>
+.figure-link {
+  display: block;
+  margin: 1rem 0;
+  color: #4CAF50;
+  text-decoration: none;
+}
+
+.figure-link:hover {
+  text-decoration: underline;
+}
+</style> 
