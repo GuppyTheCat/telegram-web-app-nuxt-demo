@@ -18,25 +18,29 @@
     <div class="controls">
       <p>Click to rotate the figure</p>
       <p>Drag horizontally to move left/right</p>
-      <p>Drag down to move downward (no upward movement)</p>
+      <p>Figure automatically moves down</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const INITIAL_POSITION = {
   x: 200,
-  y: 200,
+  y: 25, // Start near the top
   rotation: 0,
   size: 50
 }
+
+const FALL_SPEED = 1 // pixels per frame
+const UPDATE_INTERVAL = 50 // milliseconds
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const isDragging = ref(false)
 const initialDragPosition = ref({ x: 0, y: 0 })
 const dragDirection = ref<'horizontal' | 'vertical' | null>(null)
+const intervalId = ref<number | null>(null)
 
 const figure = ref({ ...INITIAL_POSITION })
 
@@ -46,6 +50,33 @@ let startY = 0
 function resetFigure() {
   figure.value = { ...INITIAL_POSITION }
   draw()
+}
+
+function updateFigurePosition() {
+  const canvas = canvasRef.value
+  if (!canvas) return
+
+  // Move figure down
+  figure.value.y += FALL_SPEED
+
+  // Reset to top if reached bottom
+  if (figure.value.y > canvas.height - figure.value.size/2) {
+    figure.value.y = figure.value.size/2
+  }
+
+  draw()
+}
+
+function startAutoMove() {
+  if (intervalId.value) return
+  intervalId.value = window.setInterval(updateFigurePosition, UPDATE_INTERVAL)
+}
+
+function stopAutoMove() {
+  if (intervalId.value) {
+    clearInterval(intervalId.value)
+    intervalId.value = null
+  }
 }
 
 function drawFigure(ctx: CanvasRenderingContext2D) {
@@ -104,12 +135,10 @@ function handleMouseMove(e: MouseEvent) {
   // Apply movement based on direction
   if (dragDirection.value === 'horizontal') {
     figure.value.x = x - startX
-  } else if (dragDirection.value === 'vertical') {
-    // Only allow downward movement
-    const newY = y - startY
-    if (newY > figure.value.y) {
-      figure.value.y = newY
-    }
+  } else if (dragDirection.value === 'vertical' && y > initialDragPosition.value.y) {
+    // Add extra downward movement when dragging down
+    figure.value.y += (y - initialDragPosition.value.y)// Adjust divisor to control sensitivity
+    initialDragPosition.value.y = y // Update reference point
   }
 
   // Keep figure within canvas bounds
@@ -122,6 +151,7 @@ function handleMouseMove(e: MouseEvent) {
 function handleMouseUp() {
   isDragging.value = false
   dragDirection.value = null
+  startAutoMove() // Resume auto movement
 }
 
 // Touch event handlers
@@ -160,6 +190,11 @@ function draw() {
 
 onMounted(() => {
   draw()
+  startAutoMove()
+})
+
+onUnmounted(() => {
+  stopAutoMove()
 })
 </script>
 
