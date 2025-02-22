@@ -3,18 +3,22 @@
     <h1>Interactive Figure</h1>
     <canvas 
       ref="canvasRef" 
+      width="400"
+      height="400"
       @mousedown="handleMouseDown"
       @mousemove="handleMouseMove"
       @mouseup="handleMouseUp"
       @touchstart="handleTouchStart"
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
-      width="400"
-      height="400"
-    ></canvas>
+    />
+    <button class="reset-button" @click="resetFigure">
+      Reset Position
+    </button>
     <div class="controls">
       <p>Click to rotate the figure</p>
-      <p>Drag to move the figure</p>
+      <p>Drag horizontally to move left/right</p>
+      <p>Drag down to move downward (no upward movement)</p>
     </div>
   </div>
 </template>
@@ -22,17 +26,27 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-const canvasRef = ref<HTMLCanvasElement | null>(null)
-const isDragging = ref(false)
-const figure = ref({
-  x: 200, // center X
-  y: 200, // center Y
+const INITIAL_POSITION = {
+  x: 200,
+  y: 200,
   rotation: 0,
   size: 50
-})
+}
+
+const canvasRef = ref<HTMLCanvasElement | null>(null)
+const isDragging = ref(false)
+const initialDragPosition = ref({ x: 0, y: 0 })
+const dragDirection = ref<'horizontal' | 'vertical' | null>(null)
+
+const figure = ref({ ...INITIAL_POSITION })
 
 let startX = 0
 let startY = 0
+
+function resetFigure() {
+  figure.value = { ...INITIAL_POSITION }
+  draw()
+}
 
 function drawFigure(ctx: CanvasRenderingContext2D) {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
@@ -60,6 +74,8 @@ function handleMouseDown(e: MouseEvent) {
     isDragging.value = true
     startX = x - figure.value.x
     startY = y - figure.value.y
+    initialDragPosition.value = { x, y }
+    dragDirection.value = null
   } else {
     // Rotate if clicked outside the figure
     figure.value.rotation += Math.PI / 4
@@ -74,14 +90,38 @@ function handleMouseMove(e: MouseEvent) {
   const rect = canvas.getBoundingClientRect()
   const x = e.clientX - rect.left
   const y = e.clientY - rect.top
-  
-  figure.value.x = x - startX
-  figure.value.y = y - startY
+
+  // Determine drag direction if not set
+  if (!dragDirection.value) {
+    const deltaX = Math.abs(x - initialDragPosition.value.x)
+    const deltaY = Math.abs(y - initialDragPosition.value.y)
+    
+    if (deltaX > 5 || deltaY > 5) {
+      dragDirection.value = deltaX > deltaY ? 'horizontal' : 'vertical'
+    }
+  }
+
+  // Apply movement based on direction
+  if (dragDirection.value === 'horizontal') {
+    figure.value.x = x - startX
+  } else if (dragDirection.value === 'vertical') {
+    // Only allow downward movement
+    const newY = y - startY
+    if (newY > figure.value.y) {
+      figure.value.y = newY
+    }
+  }
+
+  // Keep figure within canvas bounds
+  figure.value.x = Math.max(figure.value.size/2, Math.min(canvas.width - figure.value.size/2, figure.value.x))
+  figure.value.y = Math.max(figure.value.size/2, Math.min(canvas.height - figure.value.size/2, figure.value.y))
+
   draw()
 }
 
 function handleMouseUp() {
   isDragging.value = false
+  dragDirection.value = null
 }
 
 // Touch event handlers
@@ -135,6 +175,22 @@ canvas {
   border: 2px solid #333;
   background-color: #f5f5f5;
   touch-action: none; /* Prevents default touch actions */
+}
+
+.reset-button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.2s;
+}
+
+.reset-button:hover {
+  background-color: #45a049;
 }
 
 .controls {

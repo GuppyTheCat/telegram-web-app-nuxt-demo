@@ -1,6 +1,6 @@
 <template>
   <div class="layout">
-    <Navigation />
+    <AppNavigation />
     <main class="main-content">
       <slot />
     </main>
@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang="ts">
-// Navigation component will be auto-imported by Nuxt
+import AppNavigation from '~/components/AppNavigation.vue'
 </script>
 
 <style scoped>

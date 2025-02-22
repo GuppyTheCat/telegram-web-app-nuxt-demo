@@ -7,7 +7,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import DrawingCanvas from '~/components/pages/draw/DrawingCanvas.vue'
+import EventLog from '~/components/pages/draw/EventLog.vue'
 
 const eventLog = ref<string[]>([])
 
